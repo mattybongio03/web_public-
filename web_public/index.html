@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Verify Nanoil</title>
+  <style>
+    body{font-family:system-ui,Arial;margin:24px;line-height:1.4}
+    .card{max-width:520px;margin:auto;padding:20px;border:1px solid #eee;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+    input,button{padding:12px;border-radius:12px;border:1px solid #ddd;width:100%;margin:8px 0}
+    button{cursor:pointer}
+    .ok{color:#0a0}.sus{color:#a60}.bad{color:#a00}
+    .hint{font-size:12px;color:#666}
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>Verifica autenticità</h1>
+  <p>Scansiona il QR o inserisci i dati.</p>
+  <div>
+    <label>Token</label>
+    <input id="token" />
+  </div>
+  <div>
+    <label>Lot code</label>
+    <input id="lot" />
+  </div>
+  <button id="go">Verifica</button>
+  <pre id="out"></pre>
+  <p class="hint">Privacy: inviamo solo token, lot_code e metadati tecnici (IP/Paese via Cloudflare).</p>
+</div>
+<script>
+const params = new URLSearchParams(location.search);
+const t = params.get('c');
+if (t) document.getElementById('token').value = t;
+
+const PUBLIC_API_BASE = "https://api.verify-nanoil.shop"; /* URL reale */
+const API = PUBLIC_API_BASE + "/verify";
+
+document.getElementById('go').onclick = async () => {
+  const token = document.getElementById('token').value.trim();
+  const lot = document.getElementById('lot').value.trim();
+  const out = document.getElementById('out');
+  out.className = ""; out.textContent = "Verifica in corso...";
+  try{
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({ token, lot_code: lot })
+    });
+    const data = await res.json();
+    let cls = 'sus';
+    if (data.verdict==='OK') cls='ok';
+    if (data.verdict==='BURNED'||data.verdict==='BLOCKED') cls='bad';
+    out.className = cls;
+    out.textContent = JSON.stringify(data, null, 2);
+  }catch(e){
+    out.className='bad';
+    out.textContent = 'Errore di rete o API non raggiungibile';
+  }
+};
+</script>
+</body>
+</html>
